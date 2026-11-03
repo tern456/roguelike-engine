@@ -60,17 +60,23 @@ These rules apply to every task. If you are an AI coding agent, treat this secti
 | `node-pg-migrate` | Runs plain `.sql` migration files | 1 |
 | `ioredis` | Redis client | 1 |
 | `prom-client` | Prometheus metrics | 1 |
+| `pino` | Logger options and redaction (Fastify uses it underneath) | 1 |
 | `@noble/hashes` | Pure-JS SHA-256; the only hashing allowed inside `src/engine/` | 2 |
 | `argon2` | Password hashing | 4 |
 | `jose` | JWT signing and verification | 4 |
 | `@fastify/rate-limit` | Login rate limiting | 4 |
-| Dev: `typescript`, `tsx` | Compile and run | 1 |
+| Dev: `typescript`, `tsx` | Compile and run. TypeScript is pinned to the latest 6.0.x release until typescript-eslint supports 7 (ADR 0004) | 1 |
+| Dev: `@types/node` | Types for `process.env` and `node:*` modules | 1 |
+| Dev: `@types/pg` | Types for the `pg` driver, which ships none | 1 |
+| Dev: `pino-pretty` | Readable log output in development only | 1 |
 | Dev: `vitest`, `@vitest/coverage-v8` | Tests and coverage | 1 |
 | Dev: `testcontainers`, `@testcontainers/postgresql`, `@testcontainers/redis` | Real databases in tests | 1 |
 | Dev: `fast-check` | Property tests | 2 |
-| Dev: `eslint`, `typescript-eslint`, `prettier`, `eslint-config-prettier` | Lint and format | 1 |
+| Dev: `eslint`, `@eslint/js`, `typescript-eslint`, `prettier`, `eslint-config-prettier` | Lint and format | 1 |
 | Dev: `husky`, `lint-staged` | Pre-commit hook | 1 |
 | Frontend (Milestone 8): `vite` | Dev server and bundler for the web client | 8 |
+
+**Type packages are pre-approved:** an `@types/*` package for an approved package that ships no types of its own may be added as a dev dependency without asking. Name it in the pull request description.
 
 Tools outside npm: k6 for load testing (Milestone 8), gitleaks and Dependabot in CI (Milestone 1).
 
@@ -101,6 +107,8 @@ Goal: a repo that builds, lints, tests against real Postgres and Redis, and runs
   - `Math.random()` or `new Date()` in `src/engine/` fails `npm run lint`.
   - The same code in `src/modules/` passes.
   - Committing a badly formatted file formats it automatically.
+
+**TypeScript configs (also part of M1-T2):** `tsconfig.json` type-checks everything (`src/`, `test/`, `scripts/` and root `*.config.ts` files) with `noEmit`. `tsconfig.build.json` extends it with `rootDir: src`, `outDir: dist` and `include: ["src"]`. `npm run build` uses the build config; `npm run typecheck` uses `tsconfig.json`. ESLint's type-aware rules use `parserOptions.projectService`, so every linted file belongs to a config. Extra acceptance: a type error in a file under `test/` fails `npm run typecheck`.
 
 ### M1-T3 Docker Compose
 
@@ -152,7 +160,7 @@ Goal: a repo that builds, lints, tests against real Postgres and Redis, and runs
 ### M1-T9 Decision records and logs
 
 - **`docs/adr/0000-template.md`:** sections for Context, Decision, Alternatives considered, and Consequences.
-- **ADRs to write now:** `0001-modular-monolith.md`, `0002-pure-deterministic-engine.md`, `0003-kysely-and-sql-migrations.md`. Content comes from the System design tab.
+- **ADRs to write now:** `0001-modular-monolith.md`, `0002-pure-deterministic-engine.md`, `0003-kysely-and-sql-migrations.md`, `0004-typescript-6-pin.md`. Content comes from the System design tab.
 - **`docs/ai-log.md`:** a dated entry format with the prompt, what happened, what was wrong, and what was learned.
 - **Acceptance:** the files exist and the README links to them.
 
@@ -250,7 +258,7 @@ export interface RunState {
 - **Property test with fast-check:** for 200 random seeds and random sequences of up to 300 legal actions, replaying the same sequence from `newRun(seed)` gives the same final `stateHash`.
 - **Snapshot simulation:** at a random turn, serialize the state to JSON, parse it back, and continue. The final hash must match the uninterrupted run.
 - **Guard test:** a test that scans `src/engine/` for `Math.random`, `Date`, and `node:` imports, as a backstop to the lint rule.
-- **ADR:** `0004-seeded-rng-streams.md` explains the per-floor and per-run streams.
+- **ADR:** `0005-seeded-rng-streams.md` explains the per-floor and per-run streams.
 - **Acceptance:** all tests pass and `src/engine/` line coverage is at least 90%.
 
 **Milestone 2 is done when** the same seed prints the same dungeon every time, the determinism suite passes, and you can explain why floors are regenerated rather than stored.
@@ -310,7 +318,7 @@ export interface ClientView {
 - **M5-T6 Other routes.** `GET /runs/active`, `GET /runs/:id`, `POST /runs/:id/abandon`.
 - **M5-T7 Concurrency suite.** Parallel turn, retry storm, parallel run start, and crash mid-turn, from the test plan in the System design tab.
 - **M5-T8 Metrics.** Histogram `turn_duration_seconds`, counter `turn_conflicts_total`, gauges for database pool use.
-- **ADRs:** `0005-optimistic-locking.md`, `0006-jsonb-run-state.md`.
+- **ADRs:** `0006-optimistic-locking.md`, `0007-jsonb-run-state.md`.
 - **Acceptance:** the race suite passes 50 times in a row. A monster behind a wall never appears in `ClientView`.
 
 ### Milestone 6: Inventory and meta-progression
@@ -329,7 +337,7 @@ export interface ClientView {
 - **M7-T3 Redis cache.** After commit, `ZADD lb:<board>` with member = player id and value = score × 10^10 + (9,999,999,999 − end time in epoch seconds). Earlier achievement wins ties. Scores are capped at 899,999 so the value stays exact in a double.
 - **M7-T4 Read routes.** `GET /leaderboards/:board?limit=50&cursor=<rank>` and `GET /leaderboards/:board/me` read Redis. A missing key triggers a rebuild from Postgres first.
 - **M7-T5 Rebuild and replay.** `npm run leaderboard:rebuild` rebuilds all boards. `GET /runs/:id/replay` returns seed, versions and actions for finished runs.
-- **ADR:** `0007-replay-verification.md`.
+- **ADR:** `0008-replay-verification.md`.
 - **Acceptance:** an action edited directly in the database makes the run fail verification, and it never ranks. The score race test passes. Redis ranks equal Postgres ranks after a rebuild.
 
 ### Milestone 8: Frontend and proof

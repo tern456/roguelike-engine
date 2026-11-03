@@ -24,6 +24,13 @@ time you use them, and prefer clear code over clever code.
 - If the spec and the design disagree, a task is ambiguous, or the code needs something the spec
   does not say: **stop and ask**. Never invent design.
 
+## Designer updates
+
+When Kevin drops in new versions of the designer files, commit them **unchanged** on a branch
+named `docs/designer-update-<short-name>`, open a pull request titled
+`Designer update: <short-name>`, summarize what changed in the description, and stop. Any task
+branch in progress is rebased onto `main` after Kevin merges the update.
+
 ## How to do a task
 
 1. Kevin names one task, for example `M1-T3`. Do only that task.
