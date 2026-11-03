@@ -1,0 +1,18 @@
+{
+  "name": "roguelike-engine",
+  "version": "0.1.0",
+  "private": true,
+  "description": "A server-authoritative roguelike backend with a pure, deterministic turn engine.",
+  "license": "MIT",
+  "type": "module",
+  "engines": {
+    "node": ">=22"
+  },
+  "scripts": {
+    "build": "tsc",
+    "typecheck": "tsc --noEmit"
+  },
+  "devDependencies": {
+    "typescript": "6.0.3"
+  }
+}
